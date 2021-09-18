@@ -1,0 +1,16 @@
+server:
+  port: 8090
+
+services:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    concurrentMin: 4
+    concurrentMax: 5
+    queues:
+      - queue.input
+      - queue.output
+    incomingQueue:
+      - queue.input

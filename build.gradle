@@ -1,0 +1,130 @@
+import com.wiredforcode.gradle.spawn.*
+import org.apache.tools.ant.taskdefs.condition.Os
+
+plugins {
+    id 'org.springframework.boot' version '2.5.4'
+    id "com.wiredforcode.spawn" version "0.8.2"
+    id "com.avast.gradle.docker-compose" version "0.14.9"
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'groovy'
+    id 'java'
+}
+
+group = 'com.ntnn'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+
+apply plugin: "com.wiredforcode.spawn"
+
+dependencies {
+    implementation 'junit:junit:4.13.1'
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.20'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation 'org.jsonurl:jsonurl-jsonorg:2.0.1'
+    testImplementation 'org.springframework.amqp:spring-rabbit-test'
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation 'io.cucumber:cucumber-java:6.10.4'
+    testImplementation 'io.cucumber:cucumber-junit:6.10.4'
+    testImplementation 'io.cucumber:cucumber-spring:6.10.4'
+    testImplementation 'org.apache.qpid:qpid-broker:6.1.4'
+}
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    cucumberRuntime {
+        extendsFrom testImplementation
+    }
+}
+
+dockerCompose {
+    useComposeFiles = ["src\\docker\\docker-compose.yml"]
+}
+
+
+task startTestEnvironment {
+    dependsOn += ["composeUp"]
+}
+
+task stopTestEnvironment {
+    dependsOn += ["composeDown"]
+}
+
+Process process
+def PID = 0
+task startAppUnix(type: SpawnProcessTask, dependsOn: 'bootJar') {
+    command "java -jar ${buildDir}/build/libs/cucumber-0.0.1-SNAPSHOT.jar"
+    ready 'Started Application'
+    pidLockFileName '/build/.bootRun.pid.lock'
+}
+
+task runApp() {
+    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+        dependsOn("startAppUnix")
+    } else {
+        def builder = new ProcessBuilder().command("javaw","-jar", "${buildDir}\\libs\\cucumber-0.0.1-SNAPSHOT.jar")
+        doLast {
+            process = builder.start()
+            PID = process.pid();
+        }
+    }
+}
+
+task stopAppUnix(type: SpawnProcessTask) {
+    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+        pidLockFileName '/build/.bootRun.pid.lock'
+    } else {
+        def builder = new ProcessBuilder().command("taskkill","/im","javaw.exe")
+        doLast {
+            process = builder.start()
+        }
+    }
+}
+
+task stopApp() {
+    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+        dependsOn("stopAppUnix")
+    } else {
+        if(process == null) {
+            def builder = new ProcessBuilder().command("taskkill","/im","javaw.exe", "/f")
+            doLast {
+                builder.start()
+            }
+        }
+        else {
+            doLast {
+                process.destroy()
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task cucumberCli() {
+    dependsOn assemble, testClasses, runApp
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            // args = ['src/test/resources']
+        }
+    }
+    finalizedBy(stopApp)
+}

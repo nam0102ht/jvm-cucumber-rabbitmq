@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+#  ibmmq:
+#    image: ibmcom/mq:latest
+#    container_name: ibmmq
+#    environment:
+#      - LICENSE=accept
+#      - MQ_QMGR_NAME=QM1
+#      - MQ_ADMIN_PASSWORD=passw0rd
+#    hostname: ibmmq
+#    ports:
+#      - '1414:1414'
+#      - '9443:9443'
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
