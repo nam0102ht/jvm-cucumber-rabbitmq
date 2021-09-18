@@ -1,27 +1,26 @@
-#Java 11, SpringBoot, RabbitMQ, Cucumber Testing
+# Java 11, SpringBoot, RabbitMQ, Cucumber Testing
 
-##Start Test Environment
+## Start Test Environment
 Before running service, please run test environment to initialize RabbitMQ environment
-###In window:
+### In window:
 `gradlew startTestEnvironment`
-###In unix:
+### In unix:
 `./gradlew startTestEnvironment`
 
-##Start Application within background terminal
+## Start Application within background terminal
 Your service must be turned before running the cucumber test
-###In window:
+### In window:
 `gradlew runApp`
-###In unix
+### In unix
 `./gradlew runApp`
-
 And stopping app, please run 
-###In window:
+### In window:
 `gradlew stopApp`
-###In unix
+### In unix
 `./gradlew stopApp`
 
-##Start Cucumber test with command
-###In window:
+## Start Cucumber test with command
+### In window:
 `graldew cucumberCli`
-###In Unix
+### In Unix
 `./gradlew cucumberCli`
